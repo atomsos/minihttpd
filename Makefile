@@ -1,7 +1,8 @@
-all: httpd
+all: mhttpd
 
-httpd: httpd.c mimes.c
-	gcc -W -Wall -o httpd httpd.c mimes.c -lpthread
+mhttpd: httpd.c mimes.c
+	make clean
+	gcc -W -Wall -o mhttpd httpd.c mimes.c -lpthread
 
 clean:
-	rm httpd
+	rm -f mhttpd

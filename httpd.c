@@ -49,6 +49,7 @@ void serve_file(int, const char *, const char *);
 int startup(int *);
 void unimplemented(int);
 void serve_directory(int, const char *, const char *);
+void cat_directory(int client, char *directory);
 
 /**********************************************************************/
 /* A request has caused a call to accept() on the server port to
@@ -84,7 +85,7 @@ void *accept_request(void *from_client)
     j++;
   }
   method[i] = '\0';
-  printf("Method: %s\n", method);
+  // printf("Method: %s\n", method);
   //函数说明：strcasecmp()用来比较参数s1 和s2 字符串，比较时会自动忽略大小写的差异。
   //返回值：若参数s1 和s2 字符串相同则返回0。s1 长度大于s2 长度则返回大于0 的值，s1 长度若小于s2 长度则返回小于0 的值。
   if (strcasecmp(method, "GET") && strcasecmp(method, "POST") && strcasecmp(method, "HEAD"))
@@ -129,7 +130,12 @@ void *accept_request(void *from_client)
   //以上已经将起始行解析完毕
   //url中的路径格式化到path
   sprintf(path, ".%s", url);
-  printf("Path: %s\n", path);
+  int pathlen = strlen(path);
+  while (path[pathlen - 1] == '/')
+  {
+    path[pathlen-1] = '\0';
+    pathlen --;
+  }
   //学习到这里明天继续TODO
 
   //函数定义:    int stat(const char *file_name, struct stat *buf);
@@ -149,7 +155,7 @@ void *accept_request(void *from_client)
     //如果访问的网页存在则进行处理
     if ((st.st_mode & __S_IFMT) == __S_IFDIR) //S_IFDIR代表目录, 如果路径是个目录，那就将主页进行显示
     {
-      printf("Serve directory\n");
+      // printf("Serve directory\n");
       serve_directory(client, method, path);
     }
     else
@@ -447,7 +453,7 @@ void add_headers(int client, const char *filename)
   char buf[1024];
   // (void)filename; /* could use filename to determine file type */
   //                 //发送HTTP头
-  int size = 0;     // size of file
+  int size = 0; // size of file
   if (filename != NULL)
   {
     printf("Filename: %s\n", filename);
@@ -535,7 +541,7 @@ void serve_file(int client, const char *method, const char *filename)
   fclose(resource); //关闭文件句柄
 }
 
-void cat_directory(int client, const char *directory)
+void cat_directory(int client, char *directory)
 {
   char buffer[10240];
   char buf[1024];
@@ -546,7 +552,6 @@ void cat_directory(int client, const char *directory)
   while ((numchars > 0) && strcmp("\n", buf)) //将HTTP请求头读取并丢弃
   {
     numchars = get_line(client, buf, sizeof(buf));
-    printf("Num char: %d\n", numchars);
   }
 
   DIR *d;
@@ -557,22 +562,27 @@ void cat_directory(int client, const char *directory)
           directory);
   if (d)
   {
-    if (strlen(directory) > 1)
-      directory += 1;
+    // printf("directory: %s\n", directory);
+    // if (strlen(directory) > 2)
+    //   directory += 2;
+    // else if (strlen(directory) == 2)
+    directory += 1; // remove starting '.'
+    if (directory[strlen(directory) - 1] != '/')
+      strcat(directory, "/");
+    while (*(directory - 1) == '/')
+      directory[strlen(directory) - 1] = '\0';
     while ((dir = readdir(d)) != NULL)
     {
       char *filename = dir->d_name;
       if (strcmp(filename, ".") == 0)
         continue;
-      printf("filename: %s\n", filename);
-      sprintf(buf, "<tr><td><a href=\"%s/%s\">%s</a></td></tr>\n",
+      sprintf(buf, "<tr><td><a href=\"%s%s\">%s</a></td></tr>\n",
               directory, filename, filename);
       strcat(buffer, buf);
     }
     closedir(d);
   }
   strcat(buffer, "</table>\r\n");
-  printf("Buff:\n%s\n%d\n", buffer, (int)strlen(buffer));
   send(client, buffer, strlen(buffer), 0);
 }
 
@@ -580,7 +590,7 @@ void serve_directory(int client, const char *method, const char *directory)
 {
   add_headers(client, NULL);
   if (strcasecmp(method, "HEAD"))
-    cat_directory(client, directory);
+    cat_directory(client, (char *)directory);
 }
 
 /**********************************************************************/

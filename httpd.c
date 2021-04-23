@@ -60,11 +60,11 @@ void cat_directory(int client, char *directory);
 void *accept_request(void *from_client)
 {
   int client = *(int *)from_client;
-  char buf[1024];
+  char buf[10240];
   int numchars;
   char method[255];
-  char url[255];
-  char path[512];
+  char url[2550];
+  char path[5120];
   size_t i, j;
   struct stat st;
   int cgi = 0; /* becomes true if server decides this is a CGI
